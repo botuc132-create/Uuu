@@ -136,12 +136,25 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "API key phải được lưu trong Environment, không đưa vào mã nguồn."
         )
     text, markup = panel(uid)
+    # Never send an empty message body to Telegram.
+    if not isinstance(text, str) or not text.strip():
+        text = (
+            "🤖 BOT TẠO ĐƠN TỰ ĐỘNG\\n\\n"
+            f"Mã dịch vụ: {SERVICE_ID}\\n"
+            "Chọn chức năng bên dưới:"
+        )
     try:
-        await q.edit_message_text(text, reply_markup=markup)
+        await q.edit_message_text(text=text, reply_markup=markup)
     except BadRequest as exc:
-        # Telegram returns this harmless error if text and buttons are unchanged.
-        if "Message is not modified" not in str(exc):
-            raise
+        # Ignore only Telegram's harmless no-change response.
+        if "Message is not modified" in str(exc):
+            return
+        # If editing the current message fails, send a fresh panel instead.
+        log.warning("Không sửa được bảng nút: %s", exc)
+        try:
+            await q.message.reply_text(text=text, reply_markup=markup)
+        except Exception:
+            log.exception("Không gửi được bảng nút thay thế")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user, msg = update.effective_user, update.effective_message
