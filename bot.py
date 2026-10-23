@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, ContextTypes, filters
@@ -66,11 +67,11 @@ def panel(admin_id):
     state = "🟢 ĐANG BẬT" if s["enabled"] else "🔴 ĐANG TẮT"
     channel = s["channel"] or "Chưa cài"
     text = (
-        "🤖 BOT TẠO ĐƠN TỰ ĐỘNG\\n\\n"
-        f"Trạng thái: {state}\\n"
-        f"Kênh: {channel}\\n"
-        f"Lượt xem mỗi bài: {s['quantity']}\\n"
-        f"Mã dịch vụ: {SERVICE_ID}\\n\\nChọn chức năng:"
+        "🤖 BOT TẠO ĐƠN TỰ ĐỘNG\n\n"
+        f"Trạng thái: {state}\n"
+        f"Kênh: {channel}\n"
+        f"Lượt xem mỗi bài: {s['quantity']}\n"
+        f"Mã dịch vụ: {SERVICE_ID}\n\nChọn chức năng:"
     )
     keyboard = [
         [InlineKeyboardButton("🟢 Bật tự động" if not s["enabled"] else "🔴 Tắt tự động", callback_data="toggle")],
@@ -126,16 +127,21 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             out = []
             for r in rows:
-                out.append(f"{r['created_at']} | {r['status']} | đơn {r['order_id'] or 'chưa có'} | {r['quantity']} lượt\\n{r['link'] or ''}")
-            await q.message.reply_text("\\n\\n".join(out))
+                out.append(f"{r['created_at']} | {r['status']} | đơn {r['order_id'] or 'chưa có'} | {r['quantity']} lượt\n{r['link'] or ''}")
+            await q.message.reply_text("\n\n".join(out))
     elif q.data == "help":
         await q.message.reply_text(
-            "1) Cài kênh, 2) cài số lượt xem, 3) bật tự động.\\n"
+            "1) Cài kênh, 2) cài số lượt xem, 3) bật tự động.\n"
             "Thêm bot làm quản trị viên kênh để nhận bài đăng. Bot chỉ xử lý bài mới sau khi bật. "
             "API key phải được lưu trong Environment, không đưa vào mã nguồn."
         )
     text, markup = panel(uid)
-    await q.edit_message_text(text, reply_markup=markup)
+    try:
+        await q.edit_message_text(text, reply_markup=markup)
+    except BadRequest as exc:
+        # Telegram returns this harmless error if text and buttons are unchanged.
+        if "Message is not modified" not in str(exc):
+            raise
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user, msg = update.effective_user, update.effective_message
@@ -230,16 +236,16 @@ async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 order_id = str(data["order"])
                 update_processed(chat.id, msg.message_id, "ordered", order_id)
                 await send_admin(context, s["admin_id"],
-                    f"✅ Đã gửi tạo đơn\\nMã đơn: {order_id}\\nDịch vụ: {SERVICE_ID}\\nLượt xem: {s['quantity']}\\nBài: {link}")
+                    f"✅ Đã gửi tạo đơn\nMã đơn: {order_id}\nDịch vụ: {SERVICE_ID}\nLượt xem: {s['quantity']}\nBài: {link}")
             else:
                 update_processed(chat.id, msg.message_id, "api_error")
                 await send_admin(context, s["admin_id"],
-                    "⚠️ API chưa trả mã đơn. Kiểm tra URL/key/dịch vụ. Phản hồi API:\\n" +
-                    json.dumps(data, ensure_ascii=False)[:1200] + f"\\nBài: {link}")
+                    "⚠️ API chưa trả mã đơn. Kiểm tra URL/key/dịch vụ. Phản hồi API:\n" +
+                    json.dumps(data, ensure_ascii=False)[:1200] + f"\nBài: {link}")
         except Exception as exc:
             log.exception("Order API request failed")
             update_processed(chat.id, msg.message_id, "request_error")
-            await send_admin(context, s["admin_id"], f"❌ Lỗi API: {type(exc).__name__}: {exc}\\nBài: {link}")
+            await send_admin(context, s["admin_id"], f"❌ Lỗi API: {type(exc).__name__}: {exc}\nBài: {link}")
 
 def main():
     init_db()
