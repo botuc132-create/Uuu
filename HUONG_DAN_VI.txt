@@ -1,0 +1,21 @@
+BOT TELEGRAM TẠO ĐƠN TỰ ĐỘNG - RENDER
+
+1. Giải nén ZIP.
+2. Đưa bot.py, requirements.txt, render.yaml vào thư mục gốc của một GitHub repo riêng tư.
+3. Render -> New + -> Blueprint -> kết nối repo.
+4. Trong Environment điền:
+   TELEGRAM_BOT_TOKEN = token từ @BotFather
+   MUALIKE_API_KEY = API key mới đã tạo lại
+   ADMIN_IDS = Telegram user ID dạng số của bạn
+   MUALIKE_API_URL = URL API chính xác theo tài liệu Mualike1s
+5. Deploy, vào Logs và kiểm tra dòng "Bot started".
+6. Mở chat riêng với bot, gửi /start.
+7. Thêm bot làm quản trị viên kênh để nhận bài đăng.
+8. Bấm Cài kênh, nhập @username hoặc ID, cài số lượt xem, rồi bật tự động.
+
+Mã dịch vụ mặc định là 3284, theo xác nhận của bạn.
+API key không được ghi vào code, GitHub hoặc gửi trong chat.
+API URL đang đặt mặc định https://mualike1s.com/api/v3; hãy đối chiếu với tài liệu chính thức của nhà cung cấp.
+Mã gửi yêu cầu bằng POST, với action=add, service, link, quantity. Nếu API phản hồi lỗi, xem Logs/tin nhắn báo lỗi.
+Bot chỉ xử lý bài đăng mới sau khi bật. Dữ liệu SQLite trên ổ tạm Render có thể mất sau khi restart/redeploy; cần lưu trữ bền vững nếu muốn lịch sử không mất.
+Chưa thử nghiệm với tài khoản API thật của bạn.
